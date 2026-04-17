@@ -2,91 +2,76 @@
     const BASE_URL = "https://a.111477.xyz";
     const REDIRECT_URL = "https://p.111477.xyz";
 
-    async function fetch(url, options = {}) {
-        const headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            ...options.headers
-        };
-        const res = await http_get(url, headers);
-        return res;
+    const HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Referer": BASE_URL + "/"
+    };
+
+    async function get(url) {
+        const res = await http_get(url, HEADERS);
+        return res.body || res;
     }
 
-    function extractYear(title) {
-        const match = title.match(/\((\d{4})\)/);
-        return match ? parseInt(match[1]) : null;
+    function parseYear(name) {
+        const m = name.match(/\((\d{4})\)/);
+        return m ? parseInt(m[1]) : null;
     }
 
-    function parseDirectoryListings(html) {
-        const results = [];
-        const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    function getQuality(name) {
+        const l = name.toLowerCase();
+        if (l.includes("2160p") || l.includes("4k")) return "4K";
+        if (l.includes("1080p")) return "1080p";
+        if (l.includes("720p")) return "720p";
+        if (l.includes("480p")) return "480p";
+        if (l.includes("360p")) return "360p";
+        return "720p";
+    }
+
+    function parseLinks(html) {
+        const items = [];
+        const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
         let match;
-        
-        while ((match = rowRegex.exec(html)) !== null) {
+        while ((match = trRegex.exec(html)) !== null) {
             const row = match[1];
-            const linkMatch = row.match(/<a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)<\/a>/i);
-            if (!linkMatch) continue;
-            
-            const href = linkMatch[1];
-            const name = linkMatch[2].trim();
-            
-            if (href === "../" || name === "Parent Directory" || name === "../") continue;
-            if (!name) continue;
-            
+            const aMatch = row.match(/<a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)<\/a>/i);
+            if (!aMatch) continue;
+            const href = aMatch[1];
+            const name = aMatch[2].trim();
+            if (!name || name === "Parent Directory" || href === "../") continue;
             const isDir = href.endsWith("/");
             const cleanName = name.replace(/\/$/, "").trim();
             const fullUrl = href.startsWith("http") ? href : BASE_URL + href;
-            
-            results.push({
-                name: cleanName,
-                url: fullUrl,
-                isDir: isDir
-            });
+            items.push({ name: cleanName, url: fullUrl, isDir: isDir });
         }
-        
-        return results;
-    }
-
-    function getQuality(filename) {
-        const lower = filename.toLowerCase();
-        if (lower.includes("2160p") || lower.includes("4k")) return "4K";
-        if (lower.includes("1080p")) return "1080p";
-        if (lower.includes("720p")) return "720p";
-        if (lower.includes("480p")) return "480p";
-        if (lower.includes("360p")) return "360p";
-        return "720p";
+        return items;
     }
 
     async function getHome(cb) {
         try {
             const home = {};
-            
-            const dirs = [
-                { path: "/movies/", name: "Latest Movies", type: "movie" },
-                { path: "/tvs/", name: "Popular TV Shows", type: "series" },
-                { path: "/asiandrama/", name: "Asian Drama", type: "series" },
-                { path: "/kdrama/", name: "Korean Drama", type: "series" }
+            const sections = [
+                { p: "/movies/", n: "Latest Movies", t: "movie" },
+                { p: "/tvs/", n: "Popular TV Shows", t: "series" },
+                { p: "/asiandrama/", n: "Asian Drama", t: "series" },
+                { p: "/kdrama/", n: "Korean Drama", t: "series" }
             ];
             
-            for (const dir of dirs) {
+            for (const s of sections) {
                 try {
-                    const res = await fetch(BASE_URL + dir.path);
-                    const html = res.body || res;
-                    const items = parseDirectoryListings(html);
-                    
-                    const multimediaItems = items.slice(0, 30).map(item => new MultimediaItem({
-                        url: item.url,
-                        title: item.name,
-                        posterUrl: "https://placehold.co/400x600/1a1a2e/FFF?text=" + encodeURIComponent(item.name.substring(0, 25)),
-                        type: dir.type,
-                        year: extractYear(item.name)
+                    const html = await get(BASE_URL + s.p);
+                    const items = parseLinks(html);
+                    const movies = items.slice(0, 30).map(i => new MultimediaItem({
+                        url: i.url,
+                        title: i.name,
+                        posterUrl: "https://placehold.co/400x600/1a1a2e/FFF?text=" + encodeURIComponent(i.name.substring(0, 20)),
+                        type: s.t,
+                        year: parseYear(i.name)
                     }));
-                    
-                    if (multimediaItems.length) home[dir.name] = multimediaItems;
+                    if (movies.length) home[s.n] = movies;
                 } catch (e) {}
             }
-            
             cb({ success: true, data: home });
         } catch (e) {
             cb({ success: false, errorCode: "SITE_OFFLINE", message: e.toString() });
@@ -96,36 +81,30 @@
     async function search(query, cb) {
         try {
             const results = [];
-            const searchTerm = query.toLowerCase();
+            const q = query.toLowerCase();
             const dirs = [
-                { path: "/movies/", type: "movie" },
-                { path: "/tvs/", type: "series" },
-                { path: "/asiandrama/", type: "series" },
-                { path: "/kdrama/", type: "series" }
+                { p: "/movies/", t: "movie" },
+                { p: "/tvs/", t: "series" },
+                { p: "/asiandrama/", t: "series" },
+                { p: "/kdrama/", t: "series" }
             ];
             
-            for (const dir of dirs) {
+            for (const d of dirs) {
                 try {
-                    const res = await fetch(BASE_URL + dir.path);
-                    const html = res.body || res;
-                    const items = parseDirectoryListings(html);
-                    
-                    const filtered = items.filter(item => 
-                        item.name.toLowerCase().includes(searchTerm)
-                    );
-                    
-                    filtered.forEach(item => {
+                    const html = await get(BASE_URL + d.p);
+                    const items = parseLinks(html);
+                    const filtered = items.filter(i => i.name.toLowerCase().includes(q));
+                    filtered.forEach(i => {
                         results.push(new MultimediaItem({
-                            url: item.url,
-                            title: item.name,
-                            posterUrl: "https://placehold.co/400x600/1a1a2e/FFF?text=" + encodeURIComponent(item.name.substring(0, 25)),
-                            type: dir.type,
-                            year: extractYear(item.name)
+                            url: i.url,
+                            title: i.name,
+                            posterUrl: "https://placehold.co/400x600/1a1a2e/FFF?text=" + encodeURIComponent(i.name.substring(0, 20)),
+                            type: d.t,
+                            year: parseYear(i.name)
                         }));
                     });
                 } catch (e) {}
             }
-            
             cb({ success: true, data: results });
         } catch (e) {
             cb({ success: false, errorCode: "PARSE_ERROR" });
@@ -134,9 +113,8 @@
 
     async function load(url, cb) {
         try {
-            const res = await fetch(url);
-            const html = res.body || res;
-            const isDirectory = html.includes("Index of") || html.includes("index of");
+            const html = await get(url);
+            const isIndex = html.includes("Index of") || html.includes("index of");
             
             let title = "";
             const parts = url.split("/").filter(Boolean);
@@ -145,60 +123,63 @@
                 title = title.replace(/\.\d{4}p.*$/i, "").replace(/\.S\d{2}.*$/i, "");
             }
             
-            let posterUrl = "https://placehold.co/400x600/1a1a2e/FFF?text=" + encodeURIComponent(title.substring(0, 20));
-            
+            const poster = "https://placehold.co/400x600/1a1a2e/FFF?text=" + encodeURIComponent(title.substring(0, 15));
             let episodes = [];
-            if (isDirectory) {
-                const items = parseDirectoryListings(html);
-                const fileItems = items.filter(item => !item.isDir);
+            let itemType = "movie";
+            
+            if (isIndex) {
+                const items = parseLinks(html);
+                const files = items.filter(i => !i.isDir);
+                const dirs = items.filter(i => i.isDir);
                 
-                fileItems.forEach((item, idx) => {
-                    const epMatch = item.name.match(/S(\d{2})E(\d{2})/i);
-                    if (epMatch) {
+                if (dirs.length > 0) {
+                    itemType = "series";
+                    dirs.forEach((d, idx) => {
                         episodes.push(new Episode({
-                            name: "S" + epMatch[1] + "E" + epMatch[2],
-                            url: item.url,
-                            season: parseInt(epMatch[1]),
-                            episode: parseInt(epMatch[2]),
-                            posterUrl: posterUrl
-                        }));
-                    } else {
-                        episodes.push(new Episode({
-                            name: item.name,
-                            url: item.url,
+                            name: d.name,
+                            url: d.url,
                             season: 1,
                             episode: idx + 1,
-                            posterUrl: posterUrl
+                            posterUrl: poster
                         }));
-                    }
-                });
-                
-                if (episodes.length === 0) {
-                    cb({ success: true, data: {
-                        url: url,
-                        title: title,
-                        posterUrl: posterUrl,
-                        type: "movie",
-                        description: "Movie"
-                    }});
-                    return;
+                    });
+                } else if (files.length > 0) {
+                    files.forEach((f, idx) => {
+                        const epMatch = f.name.match(/S(\d{2})E(\d{2})/i);
+                        if (epMatch) {
+                            episodes.push(new Episode({
+                                name: "S" + epMatch[1] + "E" + epMatch[2],
+                                url: f.url,
+                                season: parseInt(epMatch[1]),
+                                episode: parseInt(epMatch[2]),
+                                posterUrl: poster
+                            }));
+                        } else {
+                            episodes.push(new Episode({
+                                name: f.name,
+                                url: f.url,
+                                season: 1,
+                                episode: idx + 1,
+                                posterUrl: poster
+                            }));
+                        }
+                    });
                 }
             }
             
-            const yearMatch = url.match(/\((\d{4})\)/);
-            const year = yearMatch ? parseInt(yearMatch[1]) : null;
+            const year = parseYear(url);
             
-            const movie = new MultimediaItem({
+            const item = new MultimediaItem({
                 url: url,
                 title: title,
-                posterUrl: posterUrl,
-                type: episodes.length > 0 ? "series" : "movie",
+                posterUrl: poster,
+                type: itemType,
                 year: year,
-                description: isDirectory ? `Contains ${episodes.length} episodes` : "Movie",
+                description: episodes.length > 0 ? `${episodes.length} items` : "Movie",
                 episodes: episodes
             });
             
-            cb({ success: true, data: movie });
+            cb({ success: true, data: item });
         } catch (e) {
             cb({ success: false, errorCode: "PARSE_ERROR", message: e.toString() });
         }
@@ -206,22 +187,34 @@
 
     async function loadStreams(url, cb) {
         try {
-            const res = await fetch(url);
-            const html = res.body || res;
-            const items = parseDirectoryListings(html);
+            let items = [];
             
-            const fileItems = items.filter(item => !item.isDir);
+            if (url.includes(BASE_URL) && !url.endsWith("/")) {
+                const dirUrl = url.substring(0, url.lastIndexOf("/") + 1);
+                const filename = url.substring(url.lastIndexOf("/") + 1);
+                const html = await get(dirUrl);
+                const allItems = parseLinks(html);
+                const matched = allItems.filter(i => i.name === decodeURIComponent(filename));
+                if (matched.length) {
+                    items = matched;
+                } else {
+                    items = allItems.filter(i => !i.isDir).slice(0, 1);
+                    if (items.length) items[0].url = url;
+                }
+            } else {
+                const html = await get(url);
+                const allItems = parseLinks(html);
+                items = allItems.filter(i => !i.isDir);
+            }
             
-            if (fileItems.length === 0) {
+            if (items.length === 0) {
                 cb({ success: true, data: [] });
                 return;
             }
             
             const streams = [];
-            
-            for (const item of fileItems.slice(0, 10)) {
+            for (const item of items.slice(0, 10)) {
                 const quality = getQuality(item.name);
-                
                 const streamUrl = REDIRECT_URL + "/bulk?u=" + encodeURIComponent(item.url);
                 
                 streams.push(new StreamResult({
@@ -229,8 +222,7 @@
                     quality: quality,
                     headers: {
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        "Referer": BASE_URL + "/",
-                        "Origin": BASE_URL
+                        "Referer": BASE_URL + "/"
                     }
                 }));
             }
