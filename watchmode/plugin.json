@@ -1,0 +1,10 @@
+{
+  "packageName": "com.sunriseve.skystream.watchmode",
+  "name": "WatchMode",
+  "version": 1,
+  "baseUrl": "https://api.watchmode.com",
+  "description": "Stream availability for movies and TV shows across 200+ services",
+  "authors": ["SunriseVE"],
+  "languages": ["en"],
+  "categories": ["Movie", "TvSeries"]
+}

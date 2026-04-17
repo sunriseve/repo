@@ -1,0 +1,9 @@
+{
+  "name": "SunriseVE SkyStream Repository",
+  "packageName": "com.sunriseve.skystream",
+  "description": "SkyStream plugins repository featuring WatchMode streaming availability",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/sunriseve/repo/main/dist/plugins.json"
+  ]
+}
