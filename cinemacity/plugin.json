@@ -1,0 +1,17 @@
+{
+  "packageName": "dev.skystream.moviezwap.cinemacity",
+  "name": "CinemaCity",
+  "version": 1,
+  "baseUrl": "https://cinemacity.cc",
+  "description": "Movies and TV series streaming - HD quality",
+  "authors": [
+    "CinemaCity Team"
+  ],
+  "languages": [
+    "en"
+  ],
+  "categories": [
+    "Movie",
+    "TvSeries"
+  ]
+}
