@@ -1,0 +1,120 @@
+[
+  {
+    "packageName": "com.skystream.allmovieland",
+    "name": "AllMovieLand",
+    "version": 1,
+    "baseUrl": "https://allmovieland.you",
+    "description": "Movies, TV Shows, Bollywood, Hollywood & Cartoons streaming",
+    "authors": [
+      "AllMovieLand Team"
+    ],
+    "languages": [
+      "en",
+      "hi"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries",
+      "Cartoon"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.skystream.allmovieland.sky"
+  },
+  {
+    "packageName": "dev.skystream.moviezwap.cinemacity",
+    "name": "CinemaCity",
+    "version": 1,
+    "baseUrl": "https://cinemacity.cc",
+    "description": "Movies and TV series streaming - HD quality",
+    "authors": [
+      "CinemaCity Team"
+    ],
+    "languages": [
+      "en"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/dev.skystream.moviezwap.cinemacity.sky"
+  },
+  {
+    "packageName": "com.skystream.dudefilms",
+    "name": "DudeFilms",
+    "version": 7,
+    "baseUrl": "https://dudefilms.llc",
+    "description": "DudeFilms - Bollywood, Hollywood, Gujarati & Web Series streaming",
+    "authors": [
+      "phisher98"
+    ],
+    "languages": [
+      "hi",
+      "en"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.skystream.dudefilms.sky"
+  },
+  {
+    "packageName": "dev.skystream.moviezwap.moviezwap",
+    "name": "Moviezwap",
+    "version": 1,
+    "baseUrl": "https://www.moviezwap.toys",
+    "description": "Telugu & Tamil movies provider - Latest releases in multiple qualities",
+    "authors": [
+      "Moviezwap Team"
+    ],
+    "languages": [
+      "te",
+      "ta",
+      "hi"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/dev.skystream.moviezwap.moviezwap.sky"
+  },
+  {
+    "packageName": "com.skystream.phisher",
+    "name": "Phisher Providers",
+    "version": 1,
+    "baseUrl": "https://4khdhub.dad",
+    "description": "Combined streaming providers: 4KHDHub, Goojara, Idlix, Movies4u, MovieBlast, Funmovieslix",
+    "authors": [
+      "phisher98"
+    ],
+    "languages": [
+      "en",
+      "hi",
+      "id",
+      "te"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries",
+      "Anime",
+      "Cartoon"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.skystream.phisher.sky"
+  },
+  {
+    "packageName": "com.sunriseve.skystream.watchmode",
+    "name": "WatchMode",
+    "version": 1,
+    "baseUrl": "https://api.watchmode.com",
+    "description": "Stream availability for movies and TV shows across 200+ services",
+    "authors": [
+      "SunriseVE"
+    ],
+    "languages": [
+      "en"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.sunriseve.skystream.watchmode.sky"
+  }
+]

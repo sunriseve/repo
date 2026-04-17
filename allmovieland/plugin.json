@@ -1,0 +1,19 @@
+{
+  "packageName": "com.skystream.allmovieland",
+  "name": "AllMovieLand",
+  "version": 1,
+  "baseUrl": "https://allmovieland.you",
+  "description": "Movies, TV Shows, Bollywood, Hollywood & Cartoons streaming",
+  "authors": [
+    "AllMovieLand Team"
+  ],
+  "languages": [
+    "en",
+    "hi"
+  ],
+  "categories": [
+    "Movie",
+    "TvSeries",
+    "Cartoon"
+  ]
+}

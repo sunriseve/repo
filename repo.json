@@ -1,0 +1,9 @@
+{
+  "name": "Sunrise SkyStream Repository",
+  "packageName": "com.sunrise.skystream",
+  "description": "Movies, TV Shows, Bollywood, Hollywood & Cartoons - AllMovieLand Provider for SkyStream",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/sunriseve/repo/main/dist/plugins.json"
+  ]
+}

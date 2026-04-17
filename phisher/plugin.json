@@ -1,0 +1,22 @@
+{
+  "packageName": "com.skystream.phisher",
+  "name": "Phisher Providers",
+  "version": 1,
+  "baseUrl": "https://4khdhub.dad",
+  "description": "Combined streaming providers: 4KHDHub, Goojara, Idlix, Movies4u, MovieBlast, Funmovieslix",
+  "authors": [
+    "phisher98"
+  ],
+  "languages": [
+    "en",
+    "hi",
+    "id",
+    "te"
+  ],
+  "categories": [
+    "Movie",
+    "TvSeries",
+    "Anime",
+    "Cartoon"
+  ]
+}

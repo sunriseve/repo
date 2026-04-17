@@ -1,0 +1,10 @@
+{
+  "packageName": "com.skystream.dudefilms",
+  "name": "DudeFilms",
+  "version": 7,
+  "baseUrl": "https://dudefilms.llc",
+  "description": "DudeFilms - Bollywood, Hollywood, Gujarati & Web Series streaming",
+  "authors": ["phisher98"],
+  "languages": ["hi", "en"],
+  "categories": ["Movie", "TvSeries"]
+}
