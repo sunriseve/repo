@@ -24,7 +24,7 @@ To install SkyStream on your device:
 
 ### Add Repository URL
 ```
-https://raw.githubusercontent.com/sunriseve/repo/master/repo.json
+https://raw.githubusercontent.com/sunriseve/repo/main/repo.json
 ```
 
 ### Installation Steps
