@@ -2,7 +2,7 @@ name: Build and Deploy Repository
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths-ignore:
       - 'dist/**'
       - 'README.md'
@@ -26,7 +26,7 @@ jobs:
       - name: Deploy Repository
         run: |
           npm install -g skystream-cli
-          skystream deploy -u https://raw.githubusercontent.com/${{ github.repository }}/master
+          skystream deploy -u https://raw.githubusercontent.com/${{ github.repository }}/main
 
       - name: Commit and Push changes
         run: |

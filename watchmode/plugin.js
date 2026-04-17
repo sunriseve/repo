@@ -148,33 +148,29 @@
         try {
             const home = {};
             
-            const moviesUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=movie&sort_by=popularity_desc&regions=US&limit=20&sourceTypes=sub,free`;
-            const tvUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=tv&sort_by=popularity_desc&regions=US&limit=20&sourceTypes=sub,free`;
+            const latestUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=movie&sort_by=release_date_desc&limit=20&sourceTypes=sub,free`;
+            const trendingUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=movie&sort_by=popularity_desc&limit=20&sourceTypes=sub,free`;
+            const tvUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=tv&sort_by=popularity_desc&limit=20&sourceTypes=sub,free`;
+            const freeUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=movie&sort_by=release_date_desc&limit=20&sourceTypes=free`;
             
-            const [moviesRes, tvRes] = await Promise.all([
-                http_get(moviesUrl).then(r => JSON.parse(r.body)),
-                http_get(tvUrl).then(r => JSON.parse(r.body))
+            const [latestRes, trendingRes, tvRes, freeRes] = await Promise.all([
+                http_get(latestUrl).then(r => JSON.parse(r.body)),
+                http_get(trendingUrl).then(r => JSON.parse(r.body)),
+                http_get(tvUrl).then(r => JSON.parse(r.body)),
+                http_get(freeUrl).then(r => JSON.parse(r.body))
             ]);
 
-            const trendingMovies = (moviesRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
-            const trendingTv = (tvRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
+            const latestMovies = (latestRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
+            if (latestMovies.length > 0) home["Latest Releases"] = latestMovies;
 
-            if (trendingMovies.length > 0) {
-                home["Trending Movies"] = trendingMovies;
-            }
-            if (trendingTv.length > 0) {
-                home["Trending TV Shows"] = trendingTv;
-            }
+            const trendingMovies = (trendingRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
+            if (trendingMovies.length > 0) home["Trending Movies"] = trendingMovies;
 
-            // Fetch additional free content
-            try {
-                const freeUrl = `${WATCHMODE_API}/list-titles/?apiKey=${WATCHMODE_KEY}&types=movie,tv&sort_by=release_date_desc&regions=US&limit=20&sourceTypes=free`;
-                const freeRes = await http_get(freeUrl).then(r => JSON.parse(r.body));
-                const freeItems = (freeRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
-                if (freeItems.length > 0) {
-                    home["Free to Watch"] = freeItems;
-                }
-            } catch (e) {}
+            const tvShows = (tvRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
+            if (tvShows.length > 0) home["Trending TV Shows"] = tvShows;
+
+            const freeMovies = (freeRes.titles || []).slice(0, 15).map(m => toMultimediaItem(m));
+            if (freeMovies.length > 0) home["Free on OTT"] = freeMovies;
 
             cb({ success: true, data: home });
         } catch (e) {
