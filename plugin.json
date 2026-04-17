@@ -1,0 +1,10 @@
+{
+    "packageName": "com.skystream.dahmermovies",
+    "name": "Dahmer Movies",
+    "version": 1,
+    "baseUrl": "https://a.111477.xyz",
+    "description": "Stream movies and TV shows from a.111477.xyz - Asian Drama, K-Drama, TV Series, Movies",
+    "authors": ["Your Name"],
+    "languages": ["en"],
+    "categories": ["Movie", "TvSeries", "Anime"]
+}
