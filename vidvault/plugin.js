@@ -223,16 +223,8 @@
         try {
             const parts = url.split("/").filter(p => p);
             const tmdbId = parts[1];
-            const season = parts[2] ? parseInt(parts[2]) : null;
-            const episode = parts[3] ? parseInt(parts[3]) : null;
             
-            const isMovie = url.includes("/movie/");
-            const isTv = url.includes("/tv/");
-            const mediaType = isMovie ? "movie" : "tv";
-            
-            const streamUrl = manifest.baseUrl + "/stream?id=" + tmdbId + "&type=" + mediaType + 
-                          (season ? "&season=" + season : "") + 
-                          (episode ? "&episode=" + episode : "");
+            const streamUrl = manifest.baseUrl + "/watch?id=" + tmdbId;
             
             const streams = [
                 new StreamResult({
