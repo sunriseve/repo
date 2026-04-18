@@ -20,24 +20,6 @@
     "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.skystream.allmovieland.sky"
   },
   {
-    "packageName": "dev.skystream.moviezwap.vid",
-    "name": "vidvault",
-    "version": 1,
-    "baseUrl": "https://vidvault.ru",
-    "description": "Movies and TV series streaming - HD quality",
-    "authors": [
-      "CinemaCity Team"
-    ],
-    "languages": [
-      "en"
-    ],
-    "categories": [
-      "Movie",
-      "TvSeries"
-    ],
-    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/dev.skystream.moviezwap.vid.sky"
-  },
-  {
     "packageName": "dev.skystream.moviezwap.cinemacity",
     "name": "CinemaCity",
     "version": 1,
