@@ -1,0 +1,19 @@
+{
+  "packageName": "com.vidvault.skystream.vidvault",
+  "name": "VidVault",
+  "version": 1,
+  "baseUrl": "https://vidvault.ru",
+  "description": "VidVault plugin with TMDB metadata - Movies & TV Shows",
+  "authors": [
+    "VidVault"
+  ],
+  "languages": [
+    "en",
+    "hi",
+    "ta"
+  ],
+  "categories": [
+    "Movie",
+    "TvSeries"
+  ]
+}
