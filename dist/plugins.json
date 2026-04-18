@@ -119,6 +119,26 @@
     "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.skystream.phisher.sky"
   },
   {
+    "packageName": "com.vidvault.skystream.vidvault",
+    "name": "VidVault",
+    "version": 1,
+    "baseUrl": "https://vidvault.ru",
+    "description": "VidVault plugin with TMDB metadata - Movies & TV Shows",
+    "authors": [
+      "VidVault"
+    ],
+    "languages": [
+      "en",
+      "hi",
+      "ta"
+    ],
+    "categories": [
+      "Movie",
+      "TvSeries"
+    ],
+    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.vidvault.skystream.vidvault.sky"
+  },
+  {
     "packageName": "com.sunriseve.skystream.watchmode",
     "name": "WatchMode",
     "version": 1,
