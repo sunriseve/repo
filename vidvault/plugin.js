@@ -13,6 +13,8 @@
     const BACKDROP_SIZE = "w1280";
 
     const VIDVAULT_BASE = "https://vidvault.ru";
+    const VIDVAULT_API = "https://vidvault.ru/api";
+    const VIDVAULT_DL = "https://dl.gemlelispe.workers.dev";
 
     const USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36";
 
@@ -37,6 +39,80 @@
         if (!path) return "";
         path = path.replace(/^\//, "");
         return "https://image.tmdb.org/t/p/" + BACKDROP_SIZE + "/" + path;
+    }
+
+    function formatBytes(bytes) {
+        if (bytes <= 0) return "0 B";
+        const sizes = ["B", "KB", "MB", "GB", "TB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(1) + " " + sizes[Math.min(i, sizes.length - 1)];
+    }
+
+    async function fetchVidVaultStreams(type, tmdbId, season, episode) {
+        const streams = [];
+        
+        try {
+            const tokenRes = await http_get(VIDVAULT_API + "/get-token", {
+                headers: { "User-Agent": USER_AGENT }
+            });
+            const tokenData = JSON.parse(tokenRes.body);
+            const requestToken = tokenData?.t || "";
+
+            const bodyObj = {
+                type: type,
+                tmdbId: parseInt(tmdbId),
+                season: season ? parseInt(season) : undefined,
+                episode: episode ? parseInt(episode) : undefined
+            };
+
+            const downloadRes = await http_get(VIDVAULT_API + "/download-proxy?type=" + type + "&tmdbId=" + tmdbId + (season ? "&season=" + season : "") + (episode ? "&episode=" + episode : "") + "&token=" + requestToken, {
+                headers: { 
+                    "User-Agent": USER_AGENT,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const downloadData = JSON.parse(downloadRes.body);
+            const extractData = downloadData?.extractData;
+            const data = extractData?.data || extractData;
+
+            if (data?.streams) {
+                for (const stream of data.streams) {
+                    streams.push(new StreamResult({
+                        url: stream.url,
+                        source: "VidVault",
+                        quality: stream.resolution || stream.resolutions || "720p",
+                        headers: { "User-Agent": USER_AGENT }
+                    }));
+                }
+            }
+
+            if (data?.downloads) {
+                for (const dl of data.downloads) {
+                    streams.push(new StreamResult({
+                        url: dl.url,
+                        source: "VidVault",
+                        quality: dl.resolution || "720p",
+                        headers: { "User-Agent": USER_AGENT }
+                    }));
+                }
+            }
+
+            const mkvData = downloadData?.mkvData;
+            if (mkvData?.files?.[0]?.url) {
+                streams.push(new StreamResult({
+                    url: mkvData.files[0].url,
+                    source: "VidVault",
+                    quality: "480p",
+                    format: "MKV",
+                    headers: { "User-Agent": USER_AGENT }
+                }));
+            }
+        } catch (e) {
+            console.error("[VidVault] API Error:", e.message);
+        }
+
+        return streams;
     }
 
     function buildQueryString(params) {
@@ -444,6 +520,10 @@
 
             const parts = url.split("/").filter(p => p);
             let vidvaultUrl = url;
+            let tmdbId = parts[1];
+            let season = isTv ? parseInt(parts[2]) : null;
+            let episode = isTv ? parseInt(parts[3]) : null;
+            let mediaType = isMovie ? "movie" : "tv";
 
             if (parts[0] === "movie" && parts[1]) {
                 vidvaultUrl = `${VIDVAULT_BASE}/movie/${parts[1]}`;
@@ -451,30 +531,12 @@
                 vidvaultUrl = `${VIDVAULT_BASE}/tv/${parts[1]}/${parts[2]}/${parts[3]}`;
             }
 
-            console.log("[VidVault] Fetching DDL from:", vidvaultUrl);
+            console.log("[VidVault] Fetching streams from API:", vidvaultUrl);
 
-            const html = await fetchVidVaultPage(vidvaultUrl);
-
-            if (!html || html.length < 100) {
-                console.log("[VidVault] Empty response, using direct URL");
-                cb({ success: true, data: [
-                    new StreamResult({
-                        url: vidvaultUrl,
-                        source: "VidVault",
-                        quality: "Auto",
-                        headers: {
-                            "User-Agent": USER_AGENT,
-                            "Referer": VIDVAULT_BASE + "/"
-                        }
-                    })
-                ]});
-                return;
-            }
-
-            const streams = parseDownloadLinks(html, vidvaultUrl);
+            const streams = await fetchVidVaultStreams(mediaType, tmdbId, season, episode);
 
             if (streams.length === 0) {
-                console.log("[VidVault] No DDL found, passing direct URL");
+                console.log("[VidVault] No streams from API, using direct URL");
                 streams.push(new StreamResult({
                     url: vidvaultUrl,
                     source: "VidVault",
