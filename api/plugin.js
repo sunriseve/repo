@@ -2,12 +2,45 @@
     'use strict';
 
     // Configuration
-    const TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c"; // Primary API key
-    const TMDB_BACKUP_KEY = "1865f43a0549ca50d341dd9ab8b29f49"; // Backup API key
+    const TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
+    const TMDB_BACKUP_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
     const TMDB_BASE_URL = "https://api.themoviedb.org/3";
     const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
     const TMDB_BACKDROP_BASE = "https://image.tmdb.org/t/p/original";
-    const VIDVAULT_BASE = "https://vidvault.ru";
+    
+    // Multiple streaming sources for fallback
+    const STREAMING_SOURCES = [
+        {
+            name: 'vidvault',
+            baseUrl: 'https://vidvault.ru',
+            movieUrl: (id) => `https://vidvault.ru/movie/${id}`,
+            tvUrl: (id, s, e) => `https://vidvault.ru/tv/${id}/${s}/${e}`
+        },
+        {
+            name: 'vidsrc',
+            baseUrl: 'https://vidsrc.me',
+            movieUrl: (id) => `https://vidsrc.me/embed/movie/${id}`,
+            tvUrl: (id, s, e) => `https://vidsrc.me/embed/tv/${id}/${s}/${e}`
+        },
+        {
+            name: 'embedsu',
+            baseUrl: 'https://embed.su',
+            movieUrl: (id) => `https://embed.su/embed/movie/${id}`,
+            tvUrl: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
+        },
+        {
+            name: 'videasy',
+            baseUrl: 'https://videasy.net',
+            movieUrl: (id) => `https://videasy.net/embed/movie/${id}`,
+            tvUrl: (id, s, e) => `https://videasy.net/embed/tv/${id}/${s}/${e}`
+        },
+        {
+            name: 'vidapi',
+            baseUrl: 'https://vidapi.xyz',
+            movieUrl: (id) => `https://vidapi.xyz/embed/movie/${id}`,
+            tvUrl: (id, s, e) => `https://vidapi.xyz/embed/tv/${id}/${s}/${e}`
+        }
+    ];
     
     // Mobile browser headers to bypass Cloudflare
     const MOBILE_HEADERS = {
@@ -267,7 +300,7 @@
                 const seasons = [];
                 if (tvData.seasons) {
                     for (const season of tvData.seasons) {
-                        if (season.season_number === 0) continue; // Skip specials usually
+                        if (season.season_number === 0) continue;
                         
                         const seasonData = await fetchTMDB(`/tv/${id}/season/${season.season_number}`);
                         if (seasonData && seasonData.episodes) {
@@ -295,7 +328,7 @@
         }
     }
 
-    // 4. loadStreams: Provides playable video links from vidvault.ru
+    // 4. loadStreams: Provides playable video links from multiple sources
     async function loadStreams(url, cb) {
         try {
             // Parse URL to extract TMDB ID and type
@@ -307,76 +340,69 @@
 
             const [, type, tmdbId, seasonNumber, episodeNumber] = match;
             
-            // Build vidvault.ru URL
-            let vidvaultUrl;
-            if (type === 'movie') {
-                vidvaultUrl = `${VIDVAULT_BASE}/movie/${tmdbId}`;
-            } else {
-                if (seasonNumber && episodeNumber) {
-                    vidvaultUrl = `${VIDVAULT_BASE}/tv/${tmdbId}/${seasonNumber}/${episodeNumber}`;
-                } else {
-                    // Default to season 1 episode 1 if not specified
-                    vidvaultUrl = `${VIDVAULT_BASE}/tv/${tmdbId}/1/1`;
-                }
-            }
-
-            console.log('Fetching streams from:', vidvaultUrl);
-
-            // Attempt to fetch with mobile headers to bypass Cloudflare
             const streams = [];
+            const errors = [];
             
-            try {
-                // Method 1: Direct fetch with mobile headers
-                const response = await fetch(vidvaultUrl, {
-                    method: 'GET',
-                    headers: MOBILE_HEADERS,
-                    redirect: 'follow'
-                });
-
-                if (response.ok) {
-                    const html = await response.text();
-                    const extractedStreams = extractStreamsFromHTML(html, vidvaultUrl);
-                    streams.push(...extractedStreams);
-                }
-            } catch (e) {
-                console.log('Direct fetch failed, trying alternative methods:', e.message);
-            }
-
-            // Method 2: Try with different referer and mobile simulation
-            if (streams.length === 0) {
+            // Try each streaming source
+            for (const source of STREAMING_SOURCES) {
                 try {
-                    const altHeaders = {
-                        ...MOBILE_HEADERS,
-                        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
-                        'Referer': 'https://www.google.com/'
-                    };
+                    let streamUrl;
+                    if (type === 'movie') {
+                        streamUrl = source.movieUrl(tmdbId);
+                    } else {
+                        const s = seasonNumber || 1;
+                        const e = episodeNumber || 1;
+                        streamUrl = source.tvUrl(tmdbId, s, e);
+                    }
                     
-                    const response = await fetch(vidvaultUrl, {
-                        method: 'GET',
-                        headers: altHeaders
-                    });
+                    console.log(`Trying source: ${source.name} - ${streamUrl}`);
                     
-                    if (response.ok) {
-                        const html = await response.text();
-                        const extractedStreams = extractStreamsFromHTML(html, vidvaultUrl);
-                        streams.push(...extractedStreams);
+                    // Method 1: Try to fetch and extract streams
+                    const sourceStreams = await extractStreamsFromSource(streamUrl, source);
+                    if (sourceStreams.length > 0) {
+                        streams.push(...sourceStreams);
+                        console.log(`✅ Source ${source.name} returned ${sourceStreams.length} streams`);
                     }
                 } catch (e) {
-                    console.log('Alternative fetch failed:', e.message);
+                    console.log(`❌ Source ${source.name} failed:`, e.message);
+                    errors.push(`${source.name}: ${e.message}`);
                 }
             }
-
-            // Method 3: Construct direct CDN URLs based on known patterns
+            
+            // If no streams found from extraction, provide embed URLs as fallback
             if (streams.length === 0) {
-                // Try to construct potential stream URLs based on common patterns
-                const potentialStreams = constructPotentialStreams(tmdbId, type, seasonNumber, episodeNumber);
-                streams.push(...potentialStreams);
+                console.log('No extracted streams, providing embed fallbacks...');
+                for (const source of STREAMING_SOURCES) {
+                    let embedUrl;
+                    if (type === 'movie') {
+                        embedUrl = source.movieUrl(tmdbId);
+                    } else {
+                        const s = seasonNumber || 1;
+                        const e = episodeNumber || 1;
+                        embedUrl = source.tvUrl(tmdbId, s, e);
+                    }
+                    
+                    // Add as external player stream
+                    streams.push(new StreamResult({
+                        url: embedUrl,
+                        quality: `${source.name.toUpperCase()} - External`,
+                        headers: { 
+                            'Referer': source.baseUrl,
+                            'User-Agent': MOBILE_HEADERS['User-Agent']
+                        }
+                    }));
+                }
             }
 
             if (streams.length > 0) {
-                cb({ success: true, data: streams });
+                // Remove duplicates based on URL
+                const uniqueStreams = streams.filter((stream, index, self) =>
+                    index === self.findIndex((s) => s.url === stream.url)
+                );
+                
+                cb({ success: true, data: uniqueStreams });
             } else {
-                cb({ success: false, error: 'No streams found. Cloudflare protection may be active.' });
+                cb({ success: false, error: `No streams found. Errors: ${errors.join(', ')}` });
             }
 
         } catch (error) {
@@ -385,8 +411,60 @@
         }
     }
 
+    // Helper function to extract streams from a specific source
+    async function extractStreamsFromSource(url, source) {
+        const streams = [];
+        
+        try {
+            // Try multiple header combinations
+            const headerVariants = [
+                MOBILE_HEADERS,
+                {
+                    ...MOBILE_HEADERS,
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1',
+                    'Referer': source.baseUrl
+                },
+                {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Referer': source.baseUrl
+                }
+            ];
+            
+            for (const headers of headerVariants) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: headers,
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (response.ok) {
+                        const html = await response.text();
+                        const extracted = extractStreamsFromHTML(html, url, source.name);
+                        if (extracted.length > 0) {
+                            streams.push(...extracted);
+                            break; // Found streams, no need to try other headers
+                        }
+                    }
+                } catch (e) {
+                    // Continue to next header variant
+                }
+            }
+        } catch (e) {
+            console.log(`Extraction failed for ${source.name}:`, e.message);
+        }
+        
+        return streams;
+    }
+
     // Helper function to extract streams from HTML
-    function extractStreamsFromHTML(html, referer) {
+    function extractStreamsFromHTML(html, referer, sourceName) {
         const streams = [];
         
         // Look for m3u8 links
@@ -410,7 +488,6 @@
         const mp4Matches = html.match(mp4Regex);
         if (mp4Matches) {
             mp4Matches.forEach(url => {
-                // Extract quality from URL if present
                 let quality = 'Unknown';
                 if (url.includes('1080')) quality = '1080p';
                 else if (url.includes('720')) quality = '720p';
@@ -435,7 +512,7 @@
             const url = match[1];
             if (url.includes('.m3u8') || url.includes('.mp4')) {
                 streams.push(new StreamResult({
-                    url: url.startsWith('http') ? url : `${VIDVAULT_BASE}${url}`,
+                    url: url.startsWith('http') ? url : `https://${url}`,
                     quality: 'Auto',
                     headers: { 
                         'Referer': referer,
@@ -468,19 +545,23 @@
             }
         }
 
-        return streams;
-    }
+        // Look for iframe src (embed players)
+        const iframeRegex = /<iframe[^>]+src=["']([^"']+)["'][^>]*>/i;
+        const iframeMatch = iframeRegex.exec(html);
+        if (iframeMatch && streams.length === 0) {
+            const iframeUrl = iframeMatch[1];
+            if (iframeUrl.includes('http')) {
+                streams.push(new StreamResult({
+                    url: iframeUrl,
+                    quality: `${sourceName} - Embed`,
+                    headers: { 
+                        'Referer': referer,
+                        'User-Agent': MOBILE_HEADERS['User-Agent']
+                    }
+                }));
+            }
+        }
 
-    // Helper to construct potential stream URLs based on common patterns
-    function constructPotentialStreams(tmdbId, type, season, episode) {
-        const streams = [];
-        
-        // Common patterns used by streaming sites
-        const qualities = ['1080p', '720p', '480p', '360p'];
-        
-        // Pattern 1: Direct vidvault CDN patterns (hypothetical patterns based on common practices)
-        // These would need to be updated based on actual vidvault.ru URL structure
-        
         return streams;
     }
 
