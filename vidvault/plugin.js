@@ -29,12 +29,14 @@
 
     function getPosterUrl(path) {
         if (!path) return "";
-        return `${TMDB_IMAGE_BASE}/${POSTER_SIZE}${path}`;
+        path = path.replace(/^\//, "");
+        return "https://image.tmdb.org/t/p/" + POSTER_SIZE + "/" + path;
     }
 
     function getBackdropUrl(path) {
         if (!path) return "";
-        return `${TMDB_IMAGE_BASE}/${BACKDROP_SIZE}${path}`;
+        path = path.replace(/^\//, "");
+        return "https://image.tmdb.org/t/p/" + BACKDROP_SIZE + "/" + path;
     }
 
     function buildQueryString(params) {
