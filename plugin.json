@@ -1,0 +1,7 @@
+{
+  "name": "com.vidvault.plugin",
+  "version": "1.0.0",
+  "description": "VidVault.ru plugin for SkyStream",
+  "main": "plugin.js",
+  "author": "SkyStream Developer"
+}
