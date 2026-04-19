@@ -1,16 +1,16 @@
 {
   "packageName": "com.vidvault.skystream.vidvault",
   "name": "VidVault",
-  "version": 1,
+  "version": 2,
   "baseUrl": "https://vidvault.ru",
-  "description": "VidVault plugin with TMDB metadata - Movies & TV Shows",
+  "description": "VidVault – Direct MP4/MKV streams via TMDB metadata. Supports English, Hindi & Telugu Movies and TV Shows.",
   "authors": [
-    "VidVault"
+    "SunriseVe"
   ],
   "languages": [
     "en",
     "hi",
-    "ta"
+    "te"
   ],
   "categories": [
     "Movie",
