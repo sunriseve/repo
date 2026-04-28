@@ -12,7 +12,7 @@
   async function _fetchJson(url) {
     const body = await _fetch(url);
     try { return JSON.parse(body); }
-    catch (e) { throw new Error('PARSE_ERROR: Invalid JSON'); }
+    catch (e) { throw new Error('PARSE_ERROR'); }
   }
 
   function _movieToItem(m) {
@@ -61,7 +61,7 @@
         .map(m => _movieToItem(m));
       if (trending.length) home["Trending"] = trending;
 
-      // Latest Movies - combined Telugu + Kannada
+      // Latest Movies - Telugu + Kannada combined
       const latest = allMovies.slice(0, 30).map(m => _movieToItem(m));
       if (latest.length) home["Latest Movies"] = latest;
 
@@ -128,38 +128,37 @@
 
       const streams = [];
       const sizes = (m.qualities && m.qualities.Sizes) || {};
-      const qualityMap = { "Q360p": "360p", "Q480p": "480p", "Q720p": "720p" };
 
-      // Add streams with quality + size label
+      // Add streams with dynamic size from JSON (e.g., "400 MB", "700 MB")
       if (m.qualities) {
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key === "Sizes" || !value || !value.startsWith("http")) continue;
-          const res = qualityMap[key] || key.replace("Q", "");
+          
+          // Get the ACTUAL size for this quality from the Sizes object
           const size = sizes[key] || "";
-          // This label shows in the source/quality when playing/downloading
-          const label = size ? `${res} (${size})` : res;
+          
           streams.push(new StreamResult({
             url: value,
-            quality: label,
-            source: label,  // Some players show 'source' instead of 'quality'
+            quality: size,  // Just the size: "400 MB", "700 MB", etc.
+            source: size,   // Also set source for players that use this field
             headers: { "Referer": m._baseUrl }
           }));
         }
       }
 
-      // Backup streams
+      // Backup: add from moviePath properties
       const backups = [
-        { url: m.moviePath360p, res: "360p", size: sizes["Q360p"] },
-        { url: m.moviePath480p, res: "480p", size: sizes["Q480p"] },
-        { url: m.moviePath720p, res: "720p", size: sizes["Q720p"] }
+        { url: m.moviePath360p, key: "Q360p" },
+        { url: m.moviePath480p, key: "Q480p" },
+        { url: m.moviePath720p, key: "Q720p" }
       ];
       for (const b of backups) {
         if (!b.url || streams.some(s => s.url === b.url)) continue;
-        const label = b.size ? `${b.res} (${b.size})` : b.res;
+        const size = sizes[b.key] || "";
         streams.push(new StreamResult({
           url: b.url,
-          quality: label,
-          source: label,
+          quality: size,
+          source: size,
           headers: { "Referer": m._baseUrl }
         }));
       }
