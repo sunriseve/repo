@@ -127,37 +127,30 @@
       const streams = [];
       const sizesObj = (m.qualities && m.qualities.Sizes) || {};
 
-      // Add streams with exact size from JSON's Sizes object
+      // Add streams from qualities object - NO labels (let SkyStream show real file size)
       if (m.qualities) {
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key === "Sizes" || !value || !value.startsWith("http")) continue;
-          
-          // Use the EXACT size value from JSON (e.g., "333.43 MB", "377.43 MB")
-          const exactSize = sizesObj[key] || "";
-          
           streams.push(new StreamResult({
             url: value,
-            quality: exactSize,  // Shows: "333.43 MB", "377.43 MB", etc.
-            source: exactSize,
             headers: { "Referer": m._baseUrl }
+            // NO quality/source set - SkyStream will fetch and show real size (333.43 MB, etc.)
           }));
         }
       }
 
-      // Backup streams
+      // Backup streams from moviePath properties
       const backups = [
-        { url: m.moviePath360p, key: "Q360p" },
-        { url: m.moviePath480p, key: "Q480p" },
-        { url: m.moviePath720p, key: "Q720p" }
+        { url: m.moviePath360p },
+        { url: m.moviePath480p },
+        { url: m.moviePath720p }
       ];
       for (const b of backups) {
         if (!b.url || streams.some(s => s.url === b.url)) continue;
-        const exactSize = sizesObj[b.key] || "";
         streams.push(new StreamResult({
           url: b.url,
-          quality: exactSize,
-          source: exactSize,
           headers: { "Referer": m._baseUrl }
+          // NO quality/source set
         }));
       }
 
