@@ -96,38 +96,6 @@
     "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/dev.skystream.moviezwap.moviezwap.sky"
   },
   {
-    "packageName": "com.nunflix.skystream",
-    "name": "Nunflix",
-    "version": 1,
-    "baseUrl": "https://nunflix.bar",
-    "description": "Nunflix - Watch free movies and TV shows online in HD. Provides streaming from multiple sources including VidSrc, Streamwish, and more.",
-    "authors": [
-      "Nunflix Team"
-    ],
-    "languages": [
-      "en"
-    ],
-    "categories": [
-      "Movie",
-      "TvSeries"
-    ],
-    "domains": [
-      {
-        "name": "nunflix.bar",
-        "url": "https://nunflix.bar"
-      },
-      {
-        "name": "nunflix.bio",
-        "url": "https://nunflix.bio"
-      },
-      {
-        "name": "nunflix.bz",
-        "url": "https://nunflix.bz"
-      }
-    ],
-    "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.nunflix.skystream.sky"
-  },
-  {
     "packageName": "com.skystream.phisher",
     "name": "Phisher Providers",
     "version": 1,
