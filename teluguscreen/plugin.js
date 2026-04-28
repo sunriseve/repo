@@ -5,14 +5,14 @@
 
   async function _fetch(url) {
     const res = await http_get(url, HEADERS);
-    if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status}`);
+    if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status} for ${url}`);
     return res.body || "";
   }
 
   async function _fetchJson(url) {
     const body = await _fetch(url);
     try { return JSON.parse(body); }
-    catch (e) { throw new Error('PARSE_ERROR'); }
+    catch (e) { throw new Error(`PARSE_ERROR for ${url}`); }
   }
 
   function _movieToItem(m) {
@@ -29,19 +29,14 @@
   }
 
   async function getAllMovies() {
-    let teluguMovies = [], kannadaMovies = [];
-    
-    try {
-      teluguMovies = await _fetchJson("https://teluguscreen.com/movies.json");
-      teluguMovies.forEach(m => m._baseUrl = "https://teluguscreen.com");
-    } catch (e) {}
-    
-    try {
-      kannadaMovies = await _fetchJson("https://kannadascreen.com/movies.json");
-      kannadaMovies.forEach(m => m._baseUrl = "https://kannadascreen.com");
-    } catch (e) {}
-    
-    // Interleave Telugu and Kannada movies
+    // Fetch both sources - NO silent error catching
+    const teluguMovies = await _fetchJson("https://teluguscreen.com/movies.json");
+    teluguMovies.forEach(m => m._baseUrl = "https://teluguscreen.com");
+
+    const kannadaMovies = await _fetchJson("https://kannadascreen.com/movies.json");
+    kannadaMovies.forEach(m => m._baseUrl = "https://kannadascreen.com");
+
+    // Interleave: Telugu, Kannada, Telugu, Kannada...
     const all = [];
     const maxLen = Math.max(teluguMovies.length, kannadaMovies.length);
     for (let i = 0; i < maxLen; i++) {
