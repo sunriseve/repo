@@ -125,32 +125,35 @@
       if (!m) return cb({ success: false, errorCode: "NOT_FOUND" });
 
       const streams = [];
-      const sizesObj = (m.qualities && m.qualities.Sizes) || {};
+      const qualityMap = { "Q360p": "360p", "Q480p": "480p", "Q720p": "720p" };
 
-      // Add streams from qualities object - NO labels (let SkyStream show real file size)
+      // Add streams with resolution as label (dynamic per stream)
       if (m.qualities) {
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key === "Sizes" || !value || !value.startsWith("http")) continue;
+          const res = qualityMap[key] || key.replace("Q", "");
           streams.push(new StreamResult({
             url: value,
+            quality: res,  // Shows: "360p", "480p", "720p"
+            source: res,
             headers: { "Referer": m._baseUrl }
-            // NO quality/source set - SkyStream will fetch and show real size (333.43 MB, etc.)
           }));
         }
       }
 
-      // Backup streams from moviePath properties
+      // Backup streams
       const backups = [
-        { url: m.moviePath360p },
-        { url: m.moviePath480p },
-        { url: m.moviePath720p }
+        { url: m.moviePath360p, res: "360p" },
+        { url: m.moviePath480p, res: "480p" },
+        { url: m.moviePath720p, res: "720p" }
       ];
       for (const b of backups) {
         if (!b.url || streams.some(s => s.url === b.url)) continue;
         streams.push(new StreamResult({
           url: b.url,
+          quality: b.res,
+          source: b.res,
           headers: { "Referer": m._baseUrl }
-          // NO quality/source set
         }));
       }
 
