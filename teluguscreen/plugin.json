@@ -14,17 +14,5 @@
   ],
   "categories": [
     "Movie"
-  ],
-  "providers": [
-    {
-      "id": "telugu",
-      "name": "Telugu Movies",
-      "baseUrl": "https://teluguscreen.com"
-    },
-    {
-      "id": "kannada",
-      "name": "Kannada Movies",
-      "baseUrl": "https://kannadascreen.com"
-    }
   ]
 }
