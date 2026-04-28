@@ -135,6 +135,18 @@
     "categories": [
       "Movie"
     ],
+    "providers": [
+      {
+        "id": "telugu",
+        "name": "Telugu Movies",
+        "baseUrl": "https://teluguscreen.com"
+      },
+      {
+        "id": "kannada",
+        "name": "Kannada Movies",
+        "baseUrl": "https://kannadascreen.com"
+      }
+    ],
     "url": "https://raw.githubusercontent.com/sunriseve/repo/main/dist/com.teluguscreen.skystream.sky"
   },
   {
