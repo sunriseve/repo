@@ -125,40 +125,38 @@
       if (!m) return cb({ success: false, errorCode: "NOT_FOUND" });
 
       const streams = [];
-      
-      // Extract dynamic sizes from the movie's qualities.Sizes object
       const sizesObj = (m.qualities && m.qualities.Sizes) || {};
-      
-      // Add streams from qualities object - label = exact size from JSON
+
+      // Add streams with exact size from JSON's Sizes object
       if (m.qualities) {
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key === "Sizes" || !value || !value.startsWith("http")) continue;
           
-          // Get the ACTUAL dynamic size for this quality
-          const dynamicSize = sizesObj[key] || "";
+          // Use the EXACT size value from JSON (e.g., "333.43 MB", "377.43 MB")
+          const exactSize = sizesObj[key] || "";
           
           streams.push(new StreamResult({
             url: value,
-            quality: dynamicSize,  // Shows as "400 MB", "700 MB", etc.
-            source: dynamicSize,    // Also set source for compatibility
+            quality: exactSize,  // Shows: "333.43 MB", "377.43 MB", etc.
+            source: exactSize,
             headers: { "Referer": m._baseUrl }
           }));
         }
       }
-      
-      // Backup: add from moviePath properties with dynamic sizes
-      const pathMap = [
+
+      // Backup streams
+      const backups = [
         { url: m.moviePath360p, key: "Q360p" },
         { url: m.moviePath480p, key: "Q480p" },
         { url: m.moviePath720p, key: "Q720p" }
       ];
-      for (const p of pathMap) {
-        if (!p.url || streams.some(s => s.url === p.url)) continue;
-        const dynamicSize = sizesObj[p.key] || "";
+      for (const b of backups) {
+        if (!b.url || streams.some(s => s.url === b.url)) continue;
+        const exactSize = sizesObj[b.key] || "";
         streams.push(new StreamResult({
-          url: p.url,
-          quality: dynamicSize,
-          source: dynamicSize,
+          url: b.url,
+          quality: exactSize,
+          source: exactSize,
           headers: { "Referer": m._baseUrl }
         }));
       }
