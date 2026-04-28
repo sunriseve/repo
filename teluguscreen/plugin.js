@@ -30,15 +30,25 @@
 
   async function getAllMovies() {
     let teluguMovies = [], kannadaMovies = [];
+    
     try {
       teluguMovies = await _fetchJson("https://teluguscreen.com/movies.json");
       teluguMovies.forEach(m => m._baseUrl = "https://teluguscreen.com");
     } catch (e) {}
+    
     try {
       kannadaMovies = await _fetchJson("https://kannadascreen.com/movies.json");
       kannadaMovies.forEach(m => m._baseUrl = "https://kannadascreen.com");
     } catch (e) {}
-    return [...teluguMovies, ...kannadaMovies];
+    
+    // Interleave Telugu and Kannada movies
+    const all = [];
+    const maxLen = Math.max(teluguMovies.length, kannadaMovies.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < teluguMovies.length) all.push(teluguMovies[i]);
+      if (i < kannadaMovies.length) all.push(kannadaMovies[i]);
+    }
+    return all;
   }
 
   async function getMovieById(id) {
@@ -60,7 +70,8 @@
         .map(m => _movieToItem(m));
       if (trending.length) home["Trending"] = trending;
 
-      const latest = allMovies.slice(0, 30).map(m => _movieToItem(m));
+      // Combined Telugu + Kannada (interleaved)
+      const latest = allMovies.slice(0, 60).map(m => _movieToItem(m));
       if (latest.length) home["Latest Movies"] = latest;
 
       cb({ success: true, data: home });
@@ -127,21 +138,19 @@
       const streams = [];
       const qualityMap = { "Q360p": "360p", "Q480p": "480p", "Q720p": "720p" };
 
-      // Add streams with resolution as label (dynamic per stream)
       if (m.qualities) {
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key === "Sizes" || !value || !value.startsWith("http")) continue;
           const res = qualityMap[key] || key.replace("Q", "");
           streams.push(new StreamResult({
             url: value,
-            quality: res,  // Shows: "360p", "480p", "720p"
+            quality: res,
             source: res,
             headers: { "Referer": m._baseUrl }
           }));
         }
       }
 
-      // Backup streams
       const backups = [
         { url: m.moviePath360p, res: "360p" },
         { url: m.moviePath480p, res: "480p" },
