@@ -1,7 +1,9 @@
 (function() {
-  const HEADERS = {
+  const HEADERS = { 
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   };
+
+  const CDN = `${manifest.baseUrl}/movies.json`;
 
   async function _fetch(url) {
     const res = await http_get(url, HEADERS);
@@ -32,60 +34,47 @@
     });
   }
 
+  function _getMovieById(movies, id) {
+    return movies.find(m => String(m.id) === String(id));
+  }
+
   async function getHome(cb) {
     try {
       const baseUrl = manifest.baseUrl;
-      
-      // Fetch Telugu movies
-      const teluguMovies = await _fetchJson(`${baseUrl}/movies.json`);
-      teluguMovies.forEach(m => m.source = 'telugu');
+      const movies = await _fetchJson(CDN);
 
-      // Fetch Kannada movies
-      let kannadaMovies = [];
-      try {
-        kannadaMovies = await _fetchJson(`https://kannadascreen.com/movies.json`);
-        kannadaMovies.forEach(m => m.source = 'kannada');
-      } catch (e) {
-        console.log('Kannada fetch failed:', e.message);
-      }
-
-      const allMovies = [...teluguMovies, ...kannadaMovies];
-      if (!Array.isArray(allMovies) || allMovies.length === 0) {
+      if (!Array.isArray(movies) || movies.length === 0) {
         return cb({ success: false, errorCode: "SITE_OFFLINE", message: "No movies found" });
       }
 
       const home = {};
 
-      // Trending (hero carousel) - latest from both
-      const trending = allMovies
+      // Trending - latest movies for hero carousel (sorted by year desc)
+      const trending = movies
         .filter(m => m.year && m.imagePath)
         .sort((a, b) => parseInt(b.year) - parseInt(a.year))
         .slice(0, 10)
-        .map(m => _movieToItem(m, m.source === 'kannada' ? 'https://kannadascreen.com' : baseUrl));
+        .map(m => _movieToItem(m, baseUrl));
       if (trending.length) home["Trending"] = trending;
 
-      // Latest Movies (combined)
-      const latest = allMovies.slice(0, 20).map(m =>
-        _movieToItem(m, m.source === 'kannada' ? 'https://kannadascreen.com' : baseUrl)
-      );
+      // Latest Movies
+      const latest = movies
+        .slice(0, 20)
+        .map(m => _movieToItem(m, baseUrl));
       if (latest.length) home["Latest Movies"] = latest;
 
-      // Telugu Movies
-      const telugu = allMovies.filter(m => m.source === 'telugu').slice(0, 20).map(m =>
-        _movieToItem(m, baseUrl)
-      );
+      // Telugu Movies (filter by genre or default to all)
+      const telugu = movies
+        .filter(m => m.genre && m.genre.toLowerCase().includes("telugu"))
+        .slice(0, 20)
+        .map(m => _movieToItem(m, baseUrl));
       if (telugu.length) home["Telugu Movies"] = telugu;
 
-      // Kannada Movies
-      const kannada = allMovies.filter(m => m.source === 'kannada').slice(0, 20).map(m =>
-        _movieToItem(m, 'https://kannadascreen.com')
-      );
-      if (kannada.length) home["Kannada Movies"] = kannada;
-
-      // HDRip Movies (combined)
-      const hdrip = allMovies.filter(m => m.quality === "HDRip").slice(0, 20).map(m =>
-        _movieToItem(m, m.source === 'kannada' ? 'https://kannadascreen.com' : baseUrl)
-      );
+      // Filter by quality
+      const hdrip = movies
+        .filter(m => m.quality === "HDRip")
+        .slice(0, 20)
+        .map(m => _movieToItem(m, baseUrl));
       if (hdrip.length) home["HDRip Movies"] = hdrip;
 
       cb({ success: true, data: home });
@@ -97,18 +86,11 @@
   async function search(query, cb) {
     try {
       const baseUrl = manifest.baseUrl;
-      
-      // Search both sources
-      const teluguMovies = await _fetchJson(`${baseUrl}/movies.json`);
-      let kannadaMovies = [];
-      try {
-        kannadaMovies = await _fetchJson(`https://kannadascreen.com/movies.json`);
-      } catch (e) {}
-      
-      const allMovies = [...teluguMovies, ...kannadaMovies];
+      const movies = await _fetchJson(CDN);
       const q = query.toLowerCase();
-      const results = allMovies
-        .filter(m =>
+
+      const results = movies
+        .filter(m => 
           (m.title && m.title.toLowerCase().includes(q)) ||
           (m.year && m.year.includes(q)) ||
           (m.genre && m.genre.toLowerCase().includes(q)) ||
@@ -116,7 +98,7 @@
           (m.director && m.director.toLowerCase().includes(q))
         )
         .slice(0, 50)
-        .map(m => _movieToItem(m, m.source === 'kannada' ? 'https://kannadascreen.com' : baseUrl));
+        .map(m => _movieToItem(m, baseUrl));
 
       cb({ success: true, data: results });
     } catch (e) {
@@ -126,17 +108,16 @@
 
   async function load(url, cb) {
     try {
-      const isKannada = url.includes('kannadascreen.com');
-      const baseUrl = isKannada ? 'https://kannadascreen.com' : manifest.baseUrl;
-      const movies = await _fetchJson(`${baseUrl}/movies.json`);
+      const baseUrl = manifest.baseUrl;
+      const movies = await _fetchJson(CDN);
 
+      // Extract movie ID from URL
       const idMatch = url.match(/[?&]id=(\d+)/) || url.match(/\/(\d+)(?:\.html)?$/);
       if (!idMatch) {
         return cb({ success: false, errorCode: "PARSE_ERROR", message: "Invalid movie URL" });
       }
-      
       const movieId = idMatch[1];
-      const m = movies.find(m => String(m.id) === String(movieId));
+      const m = _getMovieById(movies, movieId);
 
       if (!m) {
         return cb({ success: false, errorCode: "NOT_FOUND", message: "Movie not found" });
@@ -172,67 +153,43 @@
 
   async function loadStreams(url, cb) {
     try {
-      const isKannada = url.includes('kannadascreen.com');
-      const baseUrl = isKannada ? 'https://kannadascreen.com' : manifest.baseUrl;
-      const movies = await _fetchJson(`${baseUrl}/movies.json`);
+      const baseUrl = manifest.baseUrl;
+      const movies = await _fetchJson(CDN);
 
+      // Extract movie ID from URL
       const idMatch = url.match(/[?&]id=(\d+)/) || url.match(/\/(\d+)(?:\.html)?$/);
       if (!idMatch) {
         return cb({ success: false, errorCode: "PARSE_ERROR", message: "Invalid movie URL" });
       }
-      
       const movieId = idMatch[1];
-      const m = movies.find(m => String(m.id) === String(movieId));
+      const m = _getMovieById(movies, movieId);
 
       if (!m) {
         return cb({ success: false, errorCode: "NOT_FOUND", message: "Movie not found" });
       }
 
       const streams = [];
-      const qualityMap = { "Q360p": "360p", "Q480p": "480p", "Q720p": "720p" };
-      const sizes = (m.qualities && m.qualities.Sizes) || {};
 
-      // Add streams from qualities object with size labels
+      // Add streams from qualities object
       if (m.qualities && typeof m.qualities === 'object') {
+        const qualityMap = { "Q360p": "360p", "Q480p": "480p", "Q720p": "720p" };
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key !== "Sizes" && value && value.startsWith("http")) {
-            const res = qualityMap[key] || key.replace("Q", "");
-            const size = sizes[key] || "";
-            const qualityLabel = size ? `${res} (${size})` : res;
             streams.push(new StreamResult({
               url: value,
-              quality: qualityLabel,
+              quality: qualityMap[key] || key.replace("Q", ""),
               headers: { "Referer": baseUrl }
             }));
           }
         }
       }
 
-      // Add backup moviePath streams with size labels
-      if (m.moviePath360p && !streams.some(s => s.url === m.moviePath360p)) {
-        const size = sizes["Q360p"] || "";
-        streams.push(new StreamResult({
-          url: m.moviePath360p,
-          quality: size ? `360p (${size})` : "360p",
-          headers: { "Referer": baseUrl }
-        }));
-      }
-      if (m.moviePath480p && !streams.some(s => s.url === m.moviePath480p)) {
-        const size = sizes["Q480p"] || "";
-        streams.push(new StreamResult({
-          url: m.moviePath480p,
-          quality: size ? `480p (${size})` : "480p",
-          headers: { "Referer": baseUrl }
-        }));
-      }
-
-      if (m.moviePath720p && !streams.some(s => s.url === m.moviePath720p)) {
-        const size = sizes["Q720p"] || "";
-        streams.push(new StreamResult({
-          url: m.moviePath720p,
-          quality: size ? `720p (${size})` : "720p",
-          headers: { "Referer": baseUrl }
-        }));
+      // Add streams from moviePath properties
+      if (m.moviePath360p) streams.push(new StreamResult({ url: m.moviePath360p, quality: "360p", headers: { "Referer": baseUrl } }));
+      if (m.moviePath480p) streams.push(new StreamResult({ url: m.moviePath480p, quality: "480p", headers: { "Referer": baseUrl } }));
+      if (m.moviePath720p) streams.push(new StreamResult({ url: m.moviePath720p, quality: "720p", headers: { "Referer": baseUrl } }));
+      if (m.moviePath && !streams.find(s => s.url === m.moviePath)) {
+        streams.push(new StreamResult({ url: m.moviePath, quality: m.quality1 || "HD", headers: { "Referer": baseUrl } }));
       }
 
       if (streams.length === 0) {
@@ -245,6 +202,7 @@
     }
   }
 
+  // Export functions
   globalThis.getHome = getHome;
   globalThis.search = search;
   globalThis.load = load;
