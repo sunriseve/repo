@@ -53,7 +53,6 @@
 
       const home = {};
 
-      // Trending - hero carousel
       const trending = allMovies
         .filter(m => m.year && m.imagePath)
         .sort((a, b) => parseInt(b.year) - parseInt(a.year))
@@ -61,7 +60,6 @@
         .map(m => _movieToItem(m));
       if (trending.length) home["Trending"] = trending;
 
-      // Latest Movies - Telugu + Kannada combined
       const latest = allMovies.slice(0, 30).map(m => _movieToItem(m));
       if (latest.length) home["Latest Movies"] = latest;
 
@@ -127,38 +125,40 @@
       if (!m) return cb({ success: false, errorCode: "NOT_FOUND" });
 
       const streams = [];
-      const sizes = (m.qualities && m.qualities.Sizes) || {};
-
-      // Add streams with dynamic size from JSON (e.g., "400 MB", "700 MB")
+      
+      // Extract dynamic sizes from the movie's qualities.Sizes object
+      const sizesObj = (m.qualities && m.qualities.Sizes) || {};
+      
+      // Add streams from qualities object - label = exact size from JSON
       if (m.qualities) {
         for (const [key, value] of Object.entries(m.qualities)) {
           if (key === "Sizes" || !value || !value.startsWith("http")) continue;
           
-          // Get the ACTUAL size for this quality from the Sizes object
-          const size = sizes[key] || "";
+          // Get the ACTUAL dynamic size for this quality
+          const dynamicSize = sizesObj[key] || "";
           
           streams.push(new StreamResult({
             url: value,
-            quality: size,  // Just the size: "400 MB", "700 MB", etc.
-            source: size,   // Also set source for players that use this field
+            quality: dynamicSize,  // Shows as "400 MB", "700 MB", etc.
+            source: dynamicSize,    // Also set source for compatibility
             headers: { "Referer": m._baseUrl }
           }));
         }
       }
-
-      // Backup: add from moviePath properties
-      const backups = [
+      
+      // Backup: add from moviePath properties with dynamic sizes
+      const pathMap = [
         { url: m.moviePath360p, key: "Q360p" },
         { url: m.moviePath480p, key: "Q480p" },
         { url: m.moviePath720p, key: "Q720p" }
       ];
-      for (const b of backups) {
-        if (!b.url || streams.some(s => s.url === b.url)) continue;
-        const size = sizes[b.key] || "";
+      for (const p of pathMap) {
+        if (!p.url || streams.some(s => s.url === p.url)) continue;
+        const dynamicSize = sizesObj[p.key] || "";
         streams.push(new StreamResult({
-          url: b.url,
-          quality: size,
-          source: size,
+          url: p.url,
+          quality: dynamicSize,
+          source: dynamicSize,
           headers: { "Referer": m._baseUrl }
         }));
       }
