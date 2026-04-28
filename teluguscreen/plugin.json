@@ -1,23 +1,30 @@
 {
-       "packageName": "com.teluguscreen.skystream",
-       "name": "TeluguScreen",
-       "version": 1,
-       "baseUrl": "https://teluguscreen.com",
-       "description": "Post-OTT Telugu & Kannada movies, free streaming after official
-     OTT exclusivity ends. Content sourced from third-party platforms.",
-       "authors": ["TeluguScreen"],
-       "languages": ["te", "en", "kn"],
-       "categories": ["Movie"],
-       "providers": [
-         {
-           "id": "telugu",
-           "name": "Telugu Movies",
-           "baseUrl": "https://teluguscreen.com"
-         },
-         {
-           "id": "kannada",
-           "name": "Kannada Movies",
-           "baseUrl": "https://kannadascreen.com"
-         }
-       ]
-     }
+  "packageName": "com.teluguscreen.skystream",
+  "name": "TeluguScreen",
+  "version": 1,
+  "baseUrl": "https://teluguscreen.com",
+  "description": "Post-OTT Telugu & Kannada movies, free streaming after official OTT exclusivity ends. Content sourced from third-party platforms.",
+  "authors": [
+    "TeluguScreen"
+  ],
+  "languages": [
+    "te",
+    "en",
+    "kn"
+  ],
+  "categories": [
+    "Movie"
+  ],
+  "providers": [
+    {
+      "id": "telugu",
+      "name": "Telugu Movies",
+      "baseUrl": "https://teluguscreen.com"
+    },
+    {
+      "id": "kannada",
+      "name": "Kannada Movies",
+      "baseUrl": "https://kannadascreen.com"
+    }
+  ]
+}
